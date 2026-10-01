@@ -1,0 +1,57 @@
+clc;
+clear;
+close all;
+data = csvread('SensorData.csv');
+LDR = data(:,1);
+POT = data(:,2);
+N = length(LDR);
+Capacity = 2500;
+Voltage = 3.7;
+BatteryEnergy = Capacity*Voltage;
+SleepCurrent = 0.01;
+ActiveCurrent = 15;
+TransmitCurrent = 40;
+Interval = 10;
+ActiveTime = 0.5;
+TransmitTime = 0.2;
+SleepTime = Interval-ActiveTime-TransmitTime;
+DutyCycle = (ActiveTime+TransmitTime)/Interval*100;
+ActiveEnergy = ActiveCurrent*ActiveTime;
+TransmitEnergy = TransmitCurrent*TransmitTime;
+SleepEnergy = SleepCurrent*SleepTime;
+EnergyCycle = ActiveEnergy+TransmitEnergy+SleepEnergy;
+CyclesDay = 86400/Interval;
+DailyEnergy = EnergyCycle*CyclesDay;
+LifeDays = BatteryEnergy/DailyEnergy;
+LifeMonths = LifeDays/30;
+LifeYears = LifeDays/365;
+fprintf('Battery Capacity       : %.0f mAh\n',Capacity);
+fprintf('Duty Cycle             : %.2f %%\n',DutyCycle);
+fprintf('Daily Energy           : %.2f mWh\n',DailyEnergy);
+fprintf('Estimated Life (Days)  : %.2f\n',LifeDays);
+fprintf('Estimated Life (Months): %.2f\n',LifeMonths);
+fprintf('Estimated Life (Years) : %.2f\n',LifeYears);
+Time = 1:12;
+RemainingBattery = Capacity-(Time-1)*(Capacity/12);
+figure;
+plot(Time,RemainingBattery,'-o','LineWidth',2);
+grid on;
+xlabel('Months');
+ylabel('Remaining Battery Capacity (mAh)');
+title('Estimated Battery Capacity over Time');
+Intervals = [5 10 20 30 60];
+Life = zeros(size(Intervals));
+for i = 1:length(Intervals)
+    T = Intervals(i);
+    Sleep = T-ActiveTime-TransmitTime;
+    Energy = ActiveCurrent*ActiveTime + ...
+             TransmitCurrent*TransmitTime + ...
+             SleepCurrent*Sleep;
+    Life(i) = BatteryEnergy/(Energy*86400/T);
+end
+figure;
+plot(Intervals,Life,'-s','LineWidth',2);
+grid on;
+xlabel('Transmission Interval (seconds)');
+ylabel('Estimated Battery Life (Days)');
+title('Effect of Transmission Interval on Battery Life');
